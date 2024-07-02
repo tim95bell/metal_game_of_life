@@ -30,10 +30,8 @@ typedef struct {
 } VertexIn;
 
 typedef struct {
-    uint32_t board_size;
-    float cell_size;
-    float padding_size;
-    vector_float2 board_pos;
+    uint32_t board_cell_count_1d;
+    uint32_t cell_size;
     matrix_float4x4 projection_matrix;
 } Uniforms;
 
@@ -44,16 +42,16 @@ typedef struct {
 
 typedef NS_ENUM(EnumBackingType, VertexBufferIndex)
 {
-    VertexBufferIndex_Vertices = 0,
-    VertexBufferIndex_Uniforms = 1,
-    VertexBufferIndex_Data = 2
+   VertexBufferIndex_Vertices = 0,
+   VertexBufferIndex_Uniforms = 1,
+   VertexBufferIndex_Data = 2
 };
 
 typedef NS_ENUM(EnumBackingType, GameOfLifeBufferIndex)
 {
-    GameOfLifeBufferIndex_Uniforms = 0,
-    GameOfLifeBufferIndex_DataIn = 1,
-    GameOfLifeBufferIndex_DataOut = 2
+   GameOfLifeBufferIndex_Uniforms = 0,
+   GameOfLifeBufferIndex_DataIn = 1,
+   GameOfLifeBufferIndex_DataOut = 2
 };
 
 matrix_float4x4 scale2d(float x, float y) {
