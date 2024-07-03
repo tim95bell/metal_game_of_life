@@ -14,7 +14,7 @@ vertex VertexOut vertex_function(const uint vid [[vertex_id]],
     const uint32_t r = instance_id / uniforms.board_cell_count_1d;
     const uint32_t c = instance_id % uniforms.board_cell_count_1d;
     const uint32_t data_index = (r + 1) * r_size + (c + 1);
-    float4x4 model_matrix = translate2dv(float2(c * uniforms.cell_size, r * uniforms.cell_size)) * scale2d(uniforms.cell_size, uniforms.cell_size);
+    float4x4 model_matrix = translate2dv(float2(c, r));
     out.position = uniforms.projection_matrix * model_matrix * float4(vertices[vid].position, 0.0, 1.0);
     out.colour = data[data_index] ? float3(1.0, 1.0, 1.0) : float3(0.0, 0.0, 0.0);
     return out;

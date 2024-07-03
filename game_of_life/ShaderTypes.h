@@ -31,7 +31,6 @@ typedef struct {
 
 typedef struct {
     uint32_t board_cell_count_1d;
-    uint32_t cell_size;
     matrix_float4x4 projection_matrix;
 } Uniforms;
 
@@ -73,5 +72,18 @@ matrix_float4x4 translate2d(float x, float y) {
 inline matrix_float4x4 translate2dv(vector_float2 by) {
     return translate2d(by.x, by.y);
 }
+
+matrix_float4x4 translate3d(float x, float y, float z) {
+    return (matrix_float4x4){
+        (vector_float4){1.0, 0.0, 0.0, 0.0},
+        (vector_float4){0.0, 1.0, 0.0, 0.0},
+        (vector_float4){0.0, 0.0, 1.0, 0.0},
+        (vector_float4){x, y, z, 1.0}};
+}
+
+inline matrix_float4x4 translate3dv(vector_float3 by) {
+    return translate3d(by.x, by.y, by.z);
+}
+
 
 #endif /* ShaderTypes_h */
