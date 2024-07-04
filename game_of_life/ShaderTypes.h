@@ -25,34 +25,7 @@ typedef NSInteger EnumBackingType;
 
 #endif
 
-typedef struct {
-    vector_float2 position;
-} VertexIn;
-
-typedef struct {
-    uint32_t board_cell_count_1d;
-    matrix_float4x4 projection_matrix;
-} Uniforms;
-
-typedef struct {
-    vector_float4 position METAL_ATTRIBUTE(position);
-    vector_float3 colour METAL_ATTRIBUTE(flat);
-} VertexOut;
-
-typedef NS_ENUM(EnumBackingType, VertexBufferIndex)
-{
-   VertexBufferIndex_Vertices = 0,
-   VertexBufferIndex_Uniforms = 1,
-   VertexBufferIndex_Data = 2
-};
-
-typedef NS_ENUM(EnumBackingType, GameOfLifeBufferIndex)
-{
-   GameOfLifeBufferIndex_Uniforms = 0,
-   GameOfLifeBufferIndex_DataIn = 1,
-   GameOfLifeBufferIndex_DataOut = 2
-};
-
+// MARK: helpers
 matrix_float4x4 scale2d(float x, float y) {
     return (matrix_float4x4){(vector_float4){x, 0.0, 0.0, 0.0}, (vector_float4){0.0, y, 0.0, 0.0}, (vector_float4){0.0, 0.0, 1.0, 0.0}, (vector_float4){0.0, 0.0, 0.0, 1.0}};
 }
@@ -85,5 +58,73 @@ inline matrix_float4x4 translate3dv(vector_float3 by) {
     return translate3d(by.x, by.y, by.z);
 }
 
+// MARK: game of life
+
+typedef uint8_t GameOfLifeData;
+
+typedef struct {
+    vector_float2 position;
+} GameOfLifeVertexIn;
+
+typedef struct {
+    uint32_t board_cell_count_1d;
+    matrix_float4x4 projection_matrix;
+} GameOfLifeUniforms;
+
+typedef struct {
+    vector_float4 position METAL_ATTRIBUTE(position);
+    vector_float3 colour METAL_ATTRIBUTE(flat);
+} GameOfLifeVertexOut;
+
+typedef NS_ENUM(EnumBackingType, GameOfLifeVertexBufferIndex)
+{
+   GameOfLifeVertexBufferIndex_Vertices = 0,
+   GameOfLifeVertexBufferIndex_Uniforms = 1,
+   GameOfLifeVertexBufferIndex_Data = 2
+};
+
+typedef NS_ENUM(EnumBackingType, GameOfLifeUpdateBufferIndex)
+{
+   GameOfLifeUpdateBufferIndex_Uniforms = 0,
+   GameOfLifeUpdateBufferIndex_DataIn = 1,
+   GameOfLifeUpdateBufferIndex_DataOut = 2
+};
+
+// MARK: smooth life
+
+typedef float SmoothLifeData;
+
+typedef struct {
+    vector_float2 position;
+} SmoothLifeVertexIn;
+
+typedef struct {
+    matrix_float4x4 projection_matrix;
+    uint32_t board_cell_count_1d;
+    uint32_t inner_radius_cell_count;
+    uint32_t outer_radius_cell_count;
+    uint8_t inner_radius;
+    uint8_t outer_radius;
+} SmoothLifeUniforms;
+
+typedef struct {
+    vector_float4 position METAL_ATTRIBUTE(position);
+    float colour METAL_ATTRIBUTE(flat);
+} SmoothLifeVertexOut;
+
+typedef NS_ENUM(EnumBackingType, SmoothLifeVertexBufferIndex)
+{
+   SmoothLifeVertexBufferIndex_Vertices = 0,
+   SmoothLifeVertexBufferIndex_Uniforms = 1,
+   SmoothLifeVertexBufferIndex_Data = 2
+};
+
+typedef NS_ENUM(EnumBackingType, SmoothLifeUpdateBufferIndex)
+{
+   SmoothLifeUpdateBufferIndex_Uniforms = 0,
+   SmoothLifeUpdateBufferIndex_DataIn = 1,
+   SmoothLifeUpdateBufferIndex_DataOut = 2,
+    SmoothLifeUpdateBufferIndex_RadiusIndex = 3
+};
 
 #endif /* ShaderTypes_h */
