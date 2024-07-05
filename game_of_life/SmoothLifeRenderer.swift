@@ -3,6 +3,50 @@ import Metal
 import MetalKit
 import simd
 
+// MARK: functions to help with generating inner radius and outer radius indices
+func add_first_case(indices: inout [Int32], a: Int32, b: Int32, real_board_cell_count_1d: Int32) {
+    // -a, b
+    indices.append(-a)
+    // a, b
+    indices.append(a)
+    // b, -a
+    indices.append(-a * real_board_cell_count_1d)
+    // b, a
+    indices.append(a * real_board_cell_count_1d)
+}
+
+func add_middle_case(indices: inout [Int32], a: Int32, b: Int32, real_board_cell_count_1d: Int32) {
+    // -a, -b
+    indices.append(-a + -b * real_board_cell_count_1d)
+    // -a, b
+    indices.append(-a + b * real_board_cell_count_1d)
+    // a, -b
+    indices.append(a + -b * real_board_cell_count_1d)
+    // a, b
+    indices.append(a + b * real_board_cell_count_1d)
+
+    // -b, -a
+    indices.append(-b + -a * real_board_cell_count_1d)
+    // -b, a
+    indices.append(-b + a * real_board_cell_count_1d)
+    // b, -a
+    indices.append(b + -a * real_board_cell_count_1d)
+    // b, a
+    indices.append(b + a * real_board_cell_count_1d)
+}
+
+func add_last_case(indices: inout [Int32], a: Int32, b: Int32, real_board_cell_count_1d: Int32) {
+    // -a, -b
+    indices.append(-a + -b * real_board_cell_count_1d)
+    // -a, b
+    indices.append(-a + b * real_board_cell_count_1d)
+    // a, -b
+    indices.append(a + -b * real_board_cell_count_1d)
+    // a, b
+    indices.append(a + b * real_board_cell_count_1d)
+}
+
+// MARK: SmoothLifeRenderer
 class SmoothLifeRenderer: NSObject, MTKViewDelegate {
     
     var uniforms: SmoothLifeUniforms
@@ -42,86 +86,48 @@ class SmoothLifeRenderer: NSObject, MTKViewDelegate {
         
         camera_position = simd_float3((Float(board_cell_count_1d) / 2.0), (Float(board_cell_count_1d) / 2.0), -(far_plane / 2.0))
         
-        var inner_radius_cell_count: UInt32 = 0
-        var outer_radius_cell_count: UInt32 = 0
-        var inner_radius_indices = [Int32]();
-        var outer_radius_indices = [Int32]();
-    outer: for r in 1..<(outer_radius + 1) {
-            if (r <= inner_radius) {
-                inner_radius_indices.append(-Int32(r))
-                inner_radius_indices.append(Int32(r))
-                inner_radius_indices.append(-Int32(UInt32(r) * real_board_cell_count_1d))
-                inner_radius_indices.append(Int32(UInt32(r) * real_board_cell_count_1d))
-                inner_radius_cell_count += 4
-            } else {
-                assert(r <= outer_radius)
-                outer_radius_indices.append(-Int32(r))
-                outer_radius_indices.append(Int32(r))
-                outer_radius_indices.append(-Int32(UInt32(r) * real_board_cell_count_1d))
-                outer_radius_indices.append(Int32(UInt32(r) * real_board_cell_count_1d))
-                outer_radius_cell_count += 4
-            }
-            for v in (r + 1)..<(r + r) {
-                if (v <= inner_radius) {
-                    // -r, +v
-                    inner_radius_indices.append(Int32(UInt32(v) * real_board_cell_count_1d) - Int32(r))
-                    // +r, +v
-                    inner_radius_indices.append(Int32(UInt32(v) * real_board_cell_count_1d) + Int32(r))
-                    // -r, -v
-                    inner_radius_indices.append((-Int32(UInt32(v) * real_board_cell_count_1d)) - Int32(r))
-                    // +r, -v
-                    inner_radius_indices.append((-Int32(UInt32(v) * real_board_cell_count_1d)) + Int32(r))
-                    
-                    // -v, +r
-                    inner_radius_indices.append((-Int32(v)) + Int32(UInt32(r) * real_board_cell_count_1d))
-                    // +v, +r
-                    inner_radius_indices.append((Int32(v)) + Int32(UInt32(r) * real_board_cell_count_1d))
-                    // -v, -r
-                    inner_radius_indices.append((-Int32(v)) + (-Int32(UInt32(r) * real_board_cell_count_1d)))
-                    // +v, -r
-                    inner_radius_indices.append(Int32(v) + (-Int32(UInt32(r) * real_board_cell_count_1d)))
-                    
-                    inner_radius_cell_count += 8
-                } else if (v <= outer_radius) {
-                    // -r, +v
-                    outer_radius_indices.append(Int32(UInt32(v) * real_board_cell_count_1d) - Int32(r))
-                    // +r, +v
-                    outer_radius_indices.append(Int32(UInt32(v) * real_board_cell_count_1d) + Int32(r))
-                    // -r, -v
-                    outer_radius_indices.append((-Int32(UInt32(v) * real_board_cell_count_1d)) - Int32(r))
-                    // +r, -v
-                    outer_radius_indices.append((-Int32(UInt32(v) * real_board_cell_count_1d)) + Int32(r))
-                    
-                    // -v, +r
-                    outer_radius_indices.append((-Int32(v)) + Int32(UInt32(r) * real_board_cell_count_1d))
-                    // +v, +r
-                    outer_radius_indices.append((Int32(v)) + Int32(UInt32(r) * real_board_cell_count_1d))
-                    // -v, -r
-                    outer_radius_indices.append((-Int32(v)) + (-Int32(UInt32(r) * real_board_cell_count_1d)))
-                    // +v, -r
-                    outer_radius_indices.append(Int32(v) + (-Int32(UInt32(r) * real_board_cell_count_1d)))
-                    
-                    outer_radius_cell_count += 8
+        var inner_radius_indices = [Int32]()
+        var outer_radius_indices = [Int32]()
+
+        let inner_radius_squared = inner_radius * inner_radius
+        let outer_radius_squared = outer_radius * outer_radius
+        outer: for a in 1..<(outer_radius + 1) {
+            // first case, where b is zero
+            do {
+                let square_len = a * a
+                if (square_len <= inner_radius_squared) {
+                    add_first_case(indices: &inner_radius_indices, a: Int32(a), b: 0, real_board_cell_count_1d: Int32(real_board_cell_count_1d))
                 } else {
-                    continue outer
+                    // magnitude must always be <= outer_radius
+                    assert(square_len <= outer_radius_squared)
+                    add_first_case(indices: &outer_radius_indices, a: Int32(a), b: 0, real_board_cell_count_1d: Int32(real_board_cell_count_1d))
                 }
             }
-            if ((r + r) <= inner_radius) {
-                inner_radius_indices.append(Int32(UInt32(r) * real_board_cell_count_1d) - Int32(r))
-                inner_radius_indices.append(Int32(UInt32(r) * real_board_cell_count_1d) + Int32(r))
-                inner_radius_indices.append((-Int32(UInt32(r) * real_board_cell_count_1d)) - Int32(r))
-                inner_radius_indices.append((-Int32(UInt32(r) * real_board_cell_count_1d)) + Int32(r))
-                inner_radius_cell_count += 4
-            } else if ((r + r) <= outer_radius) {
-                outer_radius_indices.append(Int32(UInt32(r) * real_board_cell_count_1d) - Int32(r))
-                outer_radius_indices.append(Int32(UInt32(r) * real_board_cell_count_1d) + Int32(r))
-                outer_radius_indices.append((-Int32(UInt32(r) * real_board_cell_count_1d)) - Int32(r))
-                outer_radius_indices.append((-Int32(UInt32(r) * real_board_cell_count_1d)) + Int32(r))
-                outer_radius_cell_count += 4
+
+            // middle cases, where a > 0 && b > 0 && a != b
+            for b in 1..<a {
+                 let square_len = a * a + b * b
+                 if (square_len <= inner_radius_squared) {
+                     add_middle_case(indices: &inner_radius_indices, a: Int32(a), b: Int32(b), real_board_cell_count_1d: Int32(real_board_cell_count_1d))
+                 } else if (square_len <= outer_radius_squared) {
+                     add_middle_case(indices: &outer_radius_indices, a: Int32(a), b: Int32(b), real_board_cell_count_1d: Int32(real_board_cell_count_1d))
+                 } else {
+                     continue outer
+                 }
+            }
+
+            // last case, where a == b
+            do {
+                let square_len = a * a * 2
+                if (square_len <= inner_radius_squared) {
+                    add_last_case(indices: &inner_radius_indices, a: Int32(a), b: Int32(a), real_board_cell_count_1d: Int32(real_board_cell_count_1d))
+                } else if (square_len <= outer_radius_squared) {
+                    add_last_case(indices: &outer_radius_indices, a: Int32(a), b: Int32(a), real_board_cell_count_1d: Int32(real_board_cell_count_1d))
+                }
             }
         }
 
-        self.uniforms = SmoothLifeUniforms(projection_matrix: calculate_projection_view_matrix(drawable_size: metalKitView.drawableSize, camera_position: camera_position, near_plane: near_plane, far_plane: far_plane, board_cell_count_1d: board_cell_count_1d), board_cell_count_1d: board_cell_count_1d, inner_radius_cell_count: inner_radius_cell_count, outer_radius_cell_count: outer_radius_cell_count, inner_radius: inner_radius, outer_radius: outer_radius)
+        self.uniforms = SmoothLifeUniforms(projection_matrix: calculate_projection_view_matrix(drawable_size: metalKitView.drawableSize, camera_position: camera_position, near_plane: near_plane, far_plane: far_plane, board_cell_count_1d: board_cell_count_1d), board_cell_count_1d: board_cell_count_1d, inner_radius_cell_count: UInt32(inner_radius_indices.count), outer_radius_cell_count: UInt32(outer_radius_indices.count), inner_radius: inner_radius, outer_radius: outer_radius)
         
         self.device = metalKitView.device!
         self.command_queue = self.device.makeCommandQueue()!
