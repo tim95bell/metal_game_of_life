@@ -7,10 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DC1291222C38272B00E3E45D /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC1291212C38272B00E3E45D /* GameView.swift */; };
 		DC9785E72C353D8F005EA282 /* SmoothLifeRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC9785E62C353D8F005EA282 /* SmoothLifeRenderer.swift */; };
 		DC9785E92C353DEB005EA282 /* Matrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC9785E82C353DEB005EA282 /* Matrix.swift */; };
 		DCC923982C2D40AE00905EBF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCC923972C2D40AE00905EBF /* AppDelegate.swift */; };
-		DCC9239A2C2D40AE00905EBF /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCC923992C2D40AE00905EBF /* GameViewController.swift */; };
 		DCC9239C2C2D40AE00905EBF /* GameOfLifeRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCC9239B2C2D40AE00905EBF /* GameOfLifeRenderer.swift */; };
 		DCC9239E2C2D40AE00905EBF /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = DCC9239D2C2D40AE00905EBF /* Shaders.metal */; };
 		DCC923A12C2D40AF00905EBF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DCC923A02C2D40AF00905EBF /* Assets.xcassets */; };
@@ -18,11 +18,11 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		DC1291212C38272B00E3E45D /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
 		DC9785E62C353D8F005EA282 /* SmoothLifeRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmoothLifeRenderer.swift; sourceTree = "<group>"; };
 		DC9785E82C353DEB005EA282 /* Matrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Matrix.swift; sourceTree = "<group>"; };
 		DCC923942C2D40AE00905EBF /* game_of_life.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = game_of_life.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DCC923972C2D40AE00905EBF /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		DCC923992C2D40AE00905EBF /* GameViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewController.swift; sourceTree = "<group>"; };
 		DCC9239B2C2D40AE00905EBF /* GameOfLifeRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameOfLifeRenderer.swift; sourceTree = "<group>"; };
 		DCC9239D2C2D40AE00905EBF /* Shaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
 		DCC923A02C2D40AF00905EBF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -62,10 +62,10 @@
 			isa = PBXGroup;
 			children = (
 				DCC923972C2D40AE00905EBF /* AppDelegate.swift */,
-				DCC923992C2D40AE00905EBF /* GameViewController.swift */,
 				DCC9239B2C2D40AE00905EBF /* GameOfLifeRenderer.swift */,
 				DC9785E62C353D8F005EA282 /* SmoothLifeRenderer.swift */,
 				DC9785E82C353DEB005EA282 /* Matrix.swift */,
+				DC1291212C38272B00E3E45D /* GameView.swift */,
 				DCC9239D2C2D40AE00905EBF /* Shaders.metal */,
 				DCC923A02C2D40AF00905EBF /* Assets.xcassets */,
 				DCC923A22C2D40AF00905EBF /* Main.storyboard */,
@@ -146,11 +146,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				DCC9239E2C2D40AE00905EBF /* Shaders.metal in Sources */,
-				DCC9239A2C2D40AE00905EBF /* GameViewController.swift in Sources */,
 				DC9785E92C353DEB005EA282 /* Matrix.swift in Sources */,
 				DCC9239C2C2D40AE00905EBF /* GameOfLifeRenderer.swift in Sources */,
 				DCC923982C2D40AE00905EBF /* AppDelegate.swift in Sources */,
 				DC9785E72C353D8F005EA282 /* SmoothLifeRenderer.swift in Sources */,
+				DC1291222C38272B00E3E45D /* GameView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

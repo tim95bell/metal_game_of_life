@@ -47,6 +47,11 @@ func add_last_case(indices: inout [Int32], a: Int32, b: Int32, real_board_cell_c
 }
 
 // MARK: SmoothLifeRenderer
+
+enum UpdateMode {
+    case none, step, run
+}
+
 class SmoothLifeRenderer: NSObject, MTKViewDelegate {
     
     var uniforms: SmoothLifeUniforms
@@ -68,6 +73,19 @@ class SmoothLifeRenderer: NSObject, MTKViewDelegate {
     let near_plane: Float
     let far_plane: Float
     let fov: Float
+    var update_mode: UpdateMode
+    
+    func play_or_pause_update() {
+        if (self.update_mode == UpdateMode.run) {
+            update_mode = UpdateMode.none
+        } else {
+            update_mode = UpdateMode.run
+        }
+    }
+    
+    func one_update() {
+        update_mode = UpdateMode.step
+    }
     
     func drawable_size_changed(drawable_size: CGSize) {
         uniforms.projection_matrix = calculate_projection_view_matrix(drawable_size: drawable_size, camera_position: camera_position, near_plane: near_plane, far_plane: far_plane, board_cell_count_1d: uniforms.board_cell_count_1d)
@@ -76,6 +94,7 @@ class SmoothLifeRenderer: NSObject, MTKViewDelegate {
 
     init?(metalKitView: MTKView) {
         self.fov = 1.0/4.0
+        self.update_mode = UpdateMode.none
         
         let board_cell_count_1d: UInt32 = 100
         let inner_radius: UInt8 = 2
@@ -184,21 +203,29 @@ class SmoothLifeRenderer: NSObject, MTKViewDelegate {
     func draw(in view: MTKView) {
         let command_buffer = self.command_queue.makeCommandBuffer()!
         
-        let compute_command_encoder = command_buffer.makeComputeCommandEncoder()!
-        compute_command_encoder.setComputePipelineState(compute_pipeline_state!)
-        compute_command_encoder.setBuffer(uniforms_buffer, offset: 0, index: SmoothLifeUpdateBufferIndex.uniforms.rawValue)
-        compute_command_encoder.setBuffer(buffer_a, offset: 0, index: self.use_buffer_a ? SmoothLifeUpdateBufferIndex.dataOut.rawValue : SmoothLifeUpdateBufferIndex.dataIn.rawValue)
-        compute_command_encoder.setBuffer(buffer_b, offset: 0, index: self.use_buffer_a ? SmoothLifeUpdateBufferIndex.dataIn.rawValue : SmoothLifeUpdateBufferIndex.dataOut.rawValue)
-        compute_command_encoder.setBuffer(radius_index_buffer, offset: 0, index: SmoothLifeUpdateBufferIndex.radiusIndex.rawValue)
-        let cell_count = Int(uniforms.board_cell_count_1d * uniforms.board_cell_count_1d)
-        let grid_size = MTLSizeMake(cell_count, 1, 1)
-        var thread_group_size_x = compute_pipeline_state!.maxTotalThreadsPerThreadgroup
-        if (thread_group_size_x > cell_count) {
-            thread_group_size_x = cell_count
+        if (update_mode != UpdateMode.none) {
+            if (update_mode == UpdateMode.step) {
+                update_mode = UpdateMode.none
+            }
+            
+            let compute_command_encoder = command_buffer.makeComputeCommandEncoder()!
+            compute_command_encoder.setComputePipelineState(compute_pipeline_state!)
+            compute_command_encoder.setBuffer(uniforms_buffer, offset: 0, index: SmoothLifeUpdateBufferIndex.uniforms.rawValue)
+            compute_command_encoder.setBuffer(buffer_a, offset: 0, index: self.use_buffer_a ? SmoothLifeUpdateBufferIndex.dataOut.rawValue : SmoothLifeUpdateBufferIndex.dataIn.rawValue)
+            compute_command_encoder.setBuffer(buffer_b, offset: 0, index: self.use_buffer_a ? SmoothLifeUpdateBufferIndex.dataIn.rawValue : SmoothLifeUpdateBufferIndex.dataOut.rawValue)
+            compute_command_encoder.setBuffer(radius_index_buffer, offset: 0, index: SmoothLifeUpdateBufferIndex.radiusIndex.rawValue)
+            let cell_count = Int(uniforms.board_cell_count_1d * uniforms.board_cell_count_1d)
+            let grid_size = MTLSizeMake(cell_count, 1, 1)
+            var thread_group_size_x = compute_pipeline_state!.maxTotalThreadsPerThreadgroup
+            if (thread_group_size_x > cell_count) {
+                thread_group_size_x = cell_count
+            }
+            let thread_group_size = MTLSizeMake(thread_group_size_x, 1, 1)
+            compute_command_encoder.dispatchThreads(grid_size, threadsPerThreadgroup: thread_group_size)
+            compute_command_encoder.endEncoding()
+            
+            self.use_buffer_a = !self.use_buffer_a
         }
-        let thread_group_size = MTLSizeMake(thread_group_size_x, 1, 1)
-        compute_command_encoder.dispatchThreads(grid_size, threadsPerThreadgroup: thread_group_size)
-        compute_command_encoder.endEncoding()
         
         let render_pass_descriptor = view.currentRenderPassDescriptor!
         render_pass_descriptor.colorAttachments[0].clearColor = MTLClearColor(red: 1.0, green: 1.0, blue: 0.0, alpha: 1.0)
@@ -206,6 +233,7 @@ class SmoothLifeRenderer: NSObject, MTKViewDelegate {
         render_encoder.setRenderPipelineState(self.render_pipeline_state!)
         render_encoder.setVertexBuffer(vertex_buffer, offset: 0, index: SmoothLifeVertexBufferIndex.vertices.rawValue)
         render_encoder.setVertexBuffer(uniforms_buffer, offset: 0, index: SmoothLifeVertexBufferIndex.uniforms.rawValue)
+        // use the data buffer that was not just updated (the input to the update shader)
         render_encoder.setVertexBuffer(use_buffer_a ? buffer_a : buffer_b, offset: 0, index: SmoothLifeVertexBufferIndex.data.rawValue)
         render_encoder.drawPrimitives(type: MTLPrimitiveType.triangleStrip, vertexStart: 0, vertexCount: 4, instanceCount: Int(uniforms.board_cell_count_1d * uniforms.board_cell_count_1d))
         render_encoder.endEncoding()
@@ -215,8 +243,6 @@ class SmoothLifeRenderer: NSObject, MTKViewDelegate {
         
         command_buffer.commit()
         command_buffer.waitUntilCompleted()
-        
-        self.use_buffer_a = !self.use_buffer_a
     }
 
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
