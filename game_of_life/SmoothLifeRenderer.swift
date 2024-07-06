@@ -4,46 +4,54 @@ import MetalKit
 import simd
 
 // MARK: functions to help with generating inner radius and outer radius indices
-func add_first_case(indices: inout [Int32], a: Int32, b: Int32, real_board_cell_count_1d: Int32) {
+func add_first_case(indices: inout [(UInt32, UInt32)], a: UInt32, board_cell_count_1d: UInt32) {
+    // b is zero
+    let neg_a: UInt32 = board_cell_count_1d - a
+    
     // -a, b
-    indices.append(-a)
+    indices.append((neg_a, 0))
     // a, b
-    indices.append(a)
+    indices.append((a, 0))
     // b, -a
-    indices.append(-a * real_board_cell_count_1d)
+    indices.append((0, neg_a))
     // b, a
-    indices.append(a * real_board_cell_count_1d)
+    indices.append((0, a))
 }
 
-func add_middle_case(indices: inout [Int32], a: Int32, b: Int32, real_board_cell_count_1d: Int32) {
+func add_middle_case(indices: inout [(UInt32, UInt32)], a: UInt32, b: UInt32, board_cell_count_1d: UInt32) {
+    let neg_a = board_cell_count_1d - a
+    let neg_b = board_cell_count_1d - b
+        
     // -a, -b
-    indices.append(-a + -b * real_board_cell_count_1d)
+    indices.append((neg_a, neg_b))
     // -a, b
-    indices.append(-a + b * real_board_cell_count_1d)
+    indices.append((neg_a, b))
     // a, -b
-    indices.append(a + -b * real_board_cell_count_1d)
+    indices.append((a, neg_b))
     // a, b
-    indices.append(a + b * real_board_cell_count_1d)
+    indices.append((a, b))
 
     // -b, -a
-    indices.append(-b + -a * real_board_cell_count_1d)
+    indices.append((neg_b, neg_a))
     // -b, a
-    indices.append(-b + a * real_board_cell_count_1d)
+    indices.append((neg_b, a))
     // b, -a
-    indices.append(b + -a * real_board_cell_count_1d)
+    indices.append((b, neg_a))
     // b, a
-    indices.append(b + a * real_board_cell_count_1d)
+    indices.append((b, a))
 }
 
-func add_last_case(indices: inout [Int32], a: Int32, b: Int32, real_board_cell_count_1d: Int32) {
+func add_last_case(indices: inout [(UInt32, UInt32)], a_and_b: UInt32, board_cell_count_1d: UInt32) {
+    let neg_a_and_b = board_cell_count_1d - a_and_b
+        
     // -a, -b
-    indices.append(-a + -b * real_board_cell_count_1d)
+    indices.append((neg_a_and_b, neg_a_and_b))
     // -a, b
-    indices.append(-a + b * real_board_cell_count_1d)
+    indices.append((neg_a_and_b, a_and_b))
     // a, -b
-    indices.append(a + -b * real_board_cell_count_1d)
+    indices.append((a_and_b, neg_a_and_b))
     // a, b
-    indices.append(a + b * real_board_cell_count_1d)
+    indices.append((a_and_b, a_and_b))
 }
 
 // MARK: SmoothLifeRenderer
@@ -96,30 +104,29 @@ class SmoothLifeRenderer: NSObject, MTKViewDelegate {
         self.fov = 1.0/4.0
         self.update_mode = UpdateMode.none
         
-        let board_cell_count_1d: UInt32 = 100
+        let board_cell_count_1d: UInt32 = 101
         let inner_radius: UInt8 = 2
         let outer_radius: UInt8 = 6
-        let real_board_cell_count_1d = board_cell_count_1d + 2 * UInt32(outer_radius)
-        self.far_plane = ((Float(board_cell_count_1d) / 2.0) / tan(fov/2.0)) * 2.0;
-        self.near_plane = (1.0 / 2.0) / tan(fov/2.0);
+        self.far_plane = ((Float(board_cell_count_1d) / 2.0) / tan(fov / 2.0)) * 2.0;
+        self.near_plane = (1.0 / 2.0) / tan(fov / 2.0);
         
         camera_position = simd_float3((Float(board_cell_count_1d) / 2.0), (Float(board_cell_count_1d) / 2.0), -(far_plane / 2.0))
         
-        var inner_radius_indices = [Int32]()
-        var outer_radius_indices = [Int32]()
+        var inner_radius_indices: [(UInt32, UInt32)] = [(UInt32, UInt32)]()
+        var outer_radius_indices: [(UInt32, UInt32)] = [(UInt32, UInt32)]()
 
         let inner_radius_squared = inner_radius * inner_radius
         let outer_radius_squared = outer_radius * outer_radius
-        outer: for a in 1..<(outer_radius + 1) {
+    outer: for a: UInt32 in 1..<UInt32(outer_radius + 1) {
             // first case, where b is zero
             do {
                 let square_len = a * a
                 if (square_len <= inner_radius_squared) {
-                    add_first_case(indices: &inner_radius_indices, a: Int32(a), b: 0, real_board_cell_count_1d: Int32(real_board_cell_count_1d))
+                    add_first_case(indices: &inner_radius_indices, a: a, board_cell_count_1d: board_cell_count_1d)
                 } else {
                     // magnitude must always be <= outer_radius
                     assert(square_len <= outer_radius_squared)
-                    add_first_case(indices: &outer_radius_indices, a: Int32(a), b: 0, real_board_cell_count_1d: Int32(real_board_cell_count_1d))
+                    add_first_case(indices: &outer_radius_indices, a: a, board_cell_count_1d: board_cell_count_1d)
                 }
             }
 
@@ -127,9 +134,9 @@ class SmoothLifeRenderer: NSObject, MTKViewDelegate {
             for b in 1..<a {
                  let square_len = a * a + b * b
                  if (square_len <= inner_radius_squared) {
-                     add_middle_case(indices: &inner_radius_indices, a: Int32(a), b: Int32(b), real_board_cell_count_1d: Int32(real_board_cell_count_1d))
+                     add_middle_case(indices: &inner_radius_indices, a: a, b: b, board_cell_count_1d: board_cell_count_1d)
                  } else if (square_len <= outer_radius_squared) {
-                     add_middle_case(indices: &outer_radius_indices, a: Int32(a), b: Int32(b), real_board_cell_count_1d: Int32(real_board_cell_count_1d))
+                     add_middle_case(indices: &outer_radius_indices, a: a, b: b, board_cell_count_1d: board_cell_count_1d)
                  } else {
                      continue outer
                  }
@@ -139,9 +146,9 @@ class SmoothLifeRenderer: NSObject, MTKViewDelegate {
             do {
                 let square_len = a * a * 2
                 if (square_len <= inner_radius_squared) {
-                    add_last_case(indices: &inner_radius_indices, a: Int32(a), b: Int32(a), real_board_cell_count_1d: Int32(real_board_cell_count_1d))
+                    add_last_case(indices: &inner_radius_indices, a_and_b: a, board_cell_count_1d: board_cell_count_1d)
                 } else if (square_len <= outer_radius_squared) {
-                    add_last_case(indices: &outer_radius_indices, a: Int32(a), b: Int32(a), real_board_cell_count_1d: Int32(real_board_cell_count_1d))
+                    add_last_case(indices: &outer_radius_indices, a_and_b: a, board_cell_count_1d: board_cell_count_1d)
                 }
             }
         }
@@ -177,10 +184,10 @@ class SmoothLifeRenderer: NSObject, MTKViewDelegate {
         
         self.use_buffer_a = true
         
-        var buffer_a_and_b_data: [SmoothLifeData] = [SmoothLifeData](repeating: 0, count: Int(real_board_cell_count_1d * real_board_cell_count_1d));
+        var buffer_a_and_b_data: [SmoothLifeData] = [SmoothLifeData](repeating: 0, count: Int(board_cell_count_1d * board_cell_count_1d));
         for c in 0..<uniforms.board_cell_count_1d {
             for r in 0..<uniforms.board_cell_count_1d {
-                let index = (r + UInt32(uniforms.outer_radius)) * real_board_cell_count_1d + c + UInt32(uniforms.outer_radius)
+                let index = r * board_cell_count_1d + c
                 buffer_a_and_b_data[Int(index)] = (r % 2 == 1) ? (c % 2 == 1 ? 1.0 : 0.0) : (c % 2 == 1 ? 0.0 : 1.0)
             }
         }

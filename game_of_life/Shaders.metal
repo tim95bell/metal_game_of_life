@@ -52,10 +52,9 @@ vertex SmoothLifeVertexOut smooth_life_vertex(const uint vid [[vertex_id]],
                                  constant SmoothLifeUniforms& uniforms [[buffer(SmoothLifeVertexBufferIndex_Uniforms)]],
                                  constant SmoothLifeData* data [[buffer(SmoothLifeVertexBufferIndex_Data)]]) {
     SmoothLifeVertexOut out;
-    const uint32_t r_size = uniforms.board_cell_count_1d + 2 * uniforms.outer_radius;
     const uint32_t r = instance_id / uniforms.board_cell_count_1d;
     const uint32_t c = instance_id % uniforms.board_cell_count_1d;
-    const uint32_t data_index = (r + uniforms.outer_radius) * r_size + (c + uniforms.outer_radius);
+    const uint32_t data_index = r * uniforms.board_cell_count_1d + c;
     float4x4 model_matrix = translate2dv(float2(c, r));
     out.position = uniforms.projection_matrix * model_matrix * float4(vertices[vid].position, 0.0, 1.0);
     out.colour = data[data_index];
@@ -96,23 +95,28 @@ kernel void smooth_life_update(uint index [[thread_position_in_grid]],
                          constant SmoothLifeUniforms& uniforms [[buffer(SmoothLifeUpdateBufferIndex_Uniforms)]],
                          constant const SmoothLifeData* in [[buffer(SmoothLifeUpdateBufferIndex_DataIn)]],
                          device SmoothLifeData* out [[buffer(SmoothLifeUpdateBufferIndex_DataOut)]],
-                         constant int32_t* radius_index [[buffer(SmoothLifeUpdateBufferIndex_RadiusIndex)]]) {
-    const uint32_t r_size = uniforms.board_cell_count_1d + 2 * uniforms.outer_radius;
+                         constant uint32_t* radius_index [[buffer(SmoothLifeUpdateBufferIndex_RadiusIndex)]]) {
     const uint32_t r = index / uniforms.board_cell_count_1d;
     const uint32_t c = index % uniforms.board_cell_count_1d;
-    const uint32_t data_index = (r + uniforms.outer_radius) * r_size + (c + uniforms.outer_radius);
-    
+    const uint32_t data_index = r * uniforms.board_cell_count_1d + c;
+
     float inner_count = 0.0;
     for (uint32_t i = 0; i < uniforms.inner_radius_cell_count; ++i) {
-        inner_count += in[data_index + radius_index[i]];
+        const uint32_t neighbor_r = (r + radius_index[i * 2 + 1]) % uniforms.board_cell_count_1d;
+        const uint32_t neighbor_c = (c + radius_index[i * 2]) % uniforms.board_cell_count_1d;
+        const uint32_t neighbor_index = neighbor_r * uniforms.board_cell_count_1d + neighbor_c;
+        inner_count += in[neighbor_index];
     }
     inner_count /= float(uniforms.inner_radius_cell_count);
     
     float outer_count = 0.0;
     for (uint32_t i = uniforms.inner_radius_cell_count; i < uniforms.inner_radius_cell_count + uniforms.outer_radius_cell_count; ++i) {
-        outer_count += in[data_index + radius_index[i]];
+        const uint32_t neighbor_r = (r + radius_index[i * 2 + 1]) % uniforms.board_cell_count_1d;
+        const uint32_t neighbor_c = (c + radius_index[i * 2]) % uniforms.board_cell_count_1d;
+        const uint32_t neighbor_index = neighbor_r * uniforms.board_cell_count_1d + neighbor_c;
+        outer_count += in[neighbor_index];
     }
     outer_count /= float(uniforms.outer_radius_cell_count);
-
+    
     out[data_index] = s(inner_count, outer_count);
 }
