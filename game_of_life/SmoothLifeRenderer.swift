@@ -203,6 +203,20 @@ class SmoothLifeRenderer: NSObject, MTKViewDelegate {
     func draw(in view: MTKView) {
         let command_buffer = self.command_queue.makeCommandBuffer()!
         
+        let render_pass_descriptor = view.currentRenderPassDescriptor!
+        render_pass_descriptor.colorAttachments[0].clearColor = MTLClearColor(red: 1.0, green: 1.0, blue: 0.0, alpha: 1.0)
+        let render_encoder = command_buffer.makeRenderCommandEncoder(descriptor: render_pass_descriptor)!
+        render_encoder.setRenderPipelineState(self.render_pipeline_state!)
+        render_encoder.setVertexBuffer(vertex_buffer, offset: 0, index: SmoothLifeVertexBufferIndex.vertices.rawValue)
+        render_encoder.setVertexBuffer(uniforms_buffer, offset: 0, index: SmoothLifeVertexBufferIndex.uniforms.rawValue)
+        // use the data buffer that will be the input to the update shader
+        render_encoder.setVertexBuffer(use_buffer_a ? buffer_b : buffer_a, offset: 0, index: SmoothLifeVertexBufferIndex.data.rawValue)
+        render_encoder.drawPrimitives(type: MTLPrimitiveType.triangleStrip, vertexStart: 0, vertexCount: 4, instanceCount: Int(uniforms.board_cell_count_1d * uniforms.board_cell_count_1d))
+        render_encoder.endEncoding()
+        
+        let drawable = view.currentDrawable!
+        command_buffer.present(drawable, afterMinimumDuration: 1.0/5.0)
+        
         if (update_mode != UpdateMode.none) {
             if (update_mode == UpdateMode.step) {
                 update_mode = UpdateMode.none
@@ -226,20 +240,6 @@ class SmoothLifeRenderer: NSObject, MTKViewDelegate {
             
             self.use_buffer_a = !self.use_buffer_a
         }
-        
-        let render_pass_descriptor = view.currentRenderPassDescriptor!
-        render_pass_descriptor.colorAttachments[0].clearColor = MTLClearColor(red: 1.0, green: 1.0, blue: 0.0, alpha: 1.0)
-        let render_encoder = command_buffer.makeRenderCommandEncoder(descriptor: render_pass_descriptor)!
-        render_encoder.setRenderPipelineState(self.render_pipeline_state!)
-        render_encoder.setVertexBuffer(vertex_buffer, offset: 0, index: SmoothLifeVertexBufferIndex.vertices.rawValue)
-        render_encoder.setVertexBuffer(uniforms_buffer, offset: 0, index: SmoothLifeVertexBufferIndex.uniforms.rawValue)
-        // use the data buffer that was not just updated (the input to the update shader)
-        render_encoder.setVertexBuffer(use_buffer_a ? buffer_a : buffer_b, offset: 0, index: SmoothLifeVertexBufferIndex.data.rawValue)
-        render_encoder.drawPrimitives(type: MTLPrimitiveType.triangleStrip, vertexStart: 0, vertexCount: 4, instanceCount: Int(uniforms.board_cell_count_1d * uniforms.board_cell_count_1d))
-        render_encoder.endEncoding()
-        
-        let drawable = view.currentDrawable!
-        command_buffer.present(drawable, afterMinimumDuration: 1.0/5.0)
         
         command_buffer.commit()
         command_buffer.waitUntilCompleted()
