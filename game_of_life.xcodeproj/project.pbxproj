@@ -8,17 +8,18 @@
 
 /* Begin PBXBuildFile section */
 		DC1291222C38272B00E3E45D /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC1291212C38272B00E3E45D /* GameView.swift */; };
+		DC1291262C3A2C8B00E3E45D /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC1291252C3A2C8B00E3E45D /* main.swift */; };
 		DC9785E72C353D8F005EA282 /* SmoothLifeRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC9785E62C353D8F005EA282 /* SmoothLifeRenderer.swift */; };
 		DC9785E92C353DEB005EA282 /* Matrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC9785E82C353DEB005EA282 /* Matrix.swift */; };
 		DCC923982C2D40AE00905EBF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCC923972C2D40AE00905EBF /* AppDelegate.swift */; };
 		DCC9239C2C2D40AE00905EBF /* GameOfLifeRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCC9239B2C2D40AE00905EBF /* GameOfLifeRenderer.swift */; };
 		DCC9239E2C2D40AE00905EBF /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = DCC9239D2C2D40AE00905EBF /* Shaders.metal */; };
 		DCC923A12C2D40AF00905EBF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DCC923A02C2D40AF00905EBF /* Assets.xcassets */; };
-		DCC923A42C2D40AF00905EBF /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = DCC923A22C2D40AF00905EBF /* Main.storyboard */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		DC1291212C38272B00E3E45D /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
+		DC1291252C3A2C8B00E3E45D /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		DC9785E62C353D8F005EA282 /* SmoothLifeRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmoothLifeRenderer.swift; sourceTree = "<group>"; };
 		DC9785E82C353DEB005EA282 /* Matrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Matrix.swift; sourceTree = "<group>"; };
 		DCC923942C2D40AE00905EBF /* game_of_life.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = game_of_life.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -26,7 +27,6 @@
 		DCC9239B2C2D40AE00905EBF /* GameOfLifeRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameOfLifeRenderer.swift; sourceTree = "<group>"; };
 		DCC9239D2C2D40AE00905EBF /* Shaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
 		DCC923A02C2D40AF00905EBF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		DCC923A32C2D40AF00905EBF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		DCC923A52C2D40AF00905EBF /* game_of_life.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = game_of_life.entitlements; sourceTree = "<group>"; };
 		DCC923CB2C33CDDE00905EBF /* ShaderTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderTypes.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -66,11 +66,11 @@
 				DC9785E62C353D8F005EA282 /* SmoothLifeRenderer.swift */,
 				DC9785E82C353DEB005EA282 /* Matrix.swift */,
 				DC1291212C38272B00E3E45D /* GameView.swift */,
+				DC1291252C3A2C8B00E3E45D /* main.swift */,
+				DCC923CB2C33CDDE00905EBF /* ShaderTypes.h */,
 				DCC9239D2C2D40AE00905EBF /* Shaders.metal */,
 				DCC923A02C2D40AF00905EBF /* Assets.xcassets */,
-				DCC923A22C2D40AF00905EBF /* Main.storyboard */,
 				DCC923A52C2D40AF00905EBF /* game_of_life.entitlements */,
-				DCC923CB2C33CDDE00905EBF /* ShaderTypes.h */,
 			);
 			path = game_of_life;
 			sourceTree = "<group>";
@@ -134,7 +134,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				DCC923A12C2D40AF00905EBF /* Assets.xcassets in Resources */,
-				DCC923A42C2D40AF00905EBF /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -146,6 +145,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DCC9239E2C2D40AE00905EBF /* Shaders.metal in Sources */,
+				DC1291262C3A2C8B00E3E45D /* main.swift in Sources */,
 				DC9785E92C353DEB005EA282 /* Matrix.swift in Sources */,
 				DCC9239C2C2D40AE00905EBF /* GameOfLifeRenderer.swift in Sources */,
 				DCC923982C2D40AE00905EBF /* AppDelegate.swift in Sources */,
@@ -155,17 +155,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXVariantGroup section */
-		DCC923A22C2D40AF00905EBF /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				DCC923A32C2D40AF00905EBF /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		DCC923A62C2D40AF00905EBF /* Debug */ = {
@@ -297,7 +286,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSMainStoryboardFile = "";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -323,7 +312,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSMainStoryboardFile = "";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
