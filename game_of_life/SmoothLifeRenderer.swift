@@ -74,14 +74,14 @@ class SmoothLifeRenderer: NSObject, MTKViewDelegate {
     var uniforms_buffer: MTLBuffer
     var vertex_buffer: MTLBuffer
     var radius_index_buffer: MTLBuffer
-    var use_buffer_a: Bool
-    var buffer_a: MTLBuffer
-    var buffer_b: MTLBuffer
+    var data_buffer_output_index: Int
+    var data_buffer: [MTLBuffer]
     var camera_position: simd_float3
     let near_plane: Float
     let far_plane: Float
     let fov: Float
     var update_mode: UpdateMode
+    var update_on_gpu: Bool
     
     func play_or_pause_update() {
         if (self.update_mode == UpdateMode.run) {
@@ -103,8 +103,9 @@ class SmoothLifeRenderer: NSObject, MTKViewDelegate {
     init?(metalKitView: MTKView) {
         self.fov = 1.0/4.0
         self.update_mode = UpdateMode.none
+        self.update_on_gpu = true
         
-        let board_cell_count_1d: UInt32 = 101
+        let board_cell_count_1d: UInt32 = 1000
         let inner_radius: UInt8 = 2
         let outer_radius: UInt8 = 6
         self.far_plane = ((Float(board_cell_count_1d) / 2.0) / tan(fov / 2.0)) * 2.0;
@@ -182,17 +183,20 @@ class SmoothLifeRenderer: NSObject, MTKViewDelegate {
         ]
         self.vertex_buffer = device.makeBuffer(bytes: vertices, length: vertices.count * MemoryLayout.stride(ofValue: vertices[0]), options: MTLResourceOptions.storageModeShared)!
         
-        self.use_buffer_a = true
+        self.data_buffer_output_index = 0
         
         var buffer_a_and_b_data: [SmoothLifeData] = [SmoothLifeData](repeating: 0, count: Int(board_cell_count_1d * board_cell_count_1d));
-        for c in 0..<uniforms.board_cell_count_1d {
-            for r in 0..<uniforms.board_cell_count_1d {
+        for c in 0..<uniforms.board_cell_count_1d / 2 {
+            for r in 0..<uniforms.board_cell_count_1d / 2 {
                 let index = r * board_cell_count_1d + c
-                buffer_a_and_b_data[Int(index)] = (r % 2 == 1) ? (c % 2 == 1 ? 1.0 : 0.0) : (c % 2 == 1 ? 0.0 : 1.0)
+                buffer_a_and_b_data[Int(index)] = Float.random(in: 0...1)
+                
             }
         }
-        self.buffer_a = device.makeBuffer(bytes: buffer_a_and_b_data, length: buffer_a_and_b_data.count * MemoryLayout.stride(ofValue: buffer_a_and_b_data[0]), options: MTLResourceOptions.storageModeShared)!
-        self.buffer_b = device.makeBuffer(bytes: buffer_a_and_b_data, length: buffer_a_and_b_data.count * MemoryLayout.stride(ofValue: buffer_a_and_b_data[0]), options: MTLResourceOptions.storageModeShared)!
+        self.data_buffer = [
+            device.makeBuffer(bytes: buffer_a_and_b_data, length: buffer_a_and_b_data.count * MemoryLayout.stride(ofValue: buffer_a_and_b_data[0]), options: MTLResourceOptions.storageModeShared)!,
+            device.makeBuffer(bytes: buffer_a_and_b_data, length: buffer_a_and_b_data.count * MemoryLayout.stride(ofValue: buffer_a_and_b_data[0]), options: MTLResourceOptions.storageModeShared)!
+        ]
         
         do {
             self.compute_pipeline_state = try device.makeComputePipelineState(function: update_function)
@@ -217,35 +221,46 @@ class SmoothLifeRenderer: NSObject, MTKViewDelegate {
         render_encoder.setVertexBuffer(vertex_buffer, offset: 0, index: SmoothLifeVertexBufferIndex.vertices.rawValue)
         render_encoder.setVertexBuffer(uniforms_buffer, offset: 0, index: SmoothLifeVertexBufferIndex.uniforms.rawValue)
         // use the data buffer that will be the input to the update shader
-        render_encoder.setVertexBuffer(use_buffer_a ? buffer_b : buffer_a, offset: 0, index: SmoothLifeVertexBufferIndex.data.rawValue)
+        render_encoder.setVertexBuffer(data_buffer[1 - data_buffer_output_index], offset: 0, index: SmoothLifeVertexBufferIndex.data.rawValue)
         render_encoder.drawPrimitives(type: MTLPrimitiveType.triangleStrip, vertexStart: 0, vertexCount: 4, instanceCount: Int(uniforms.board_cell_count_1d * uniforms.board_cell_count_1d))
         render_encoder.endEncoding()
         
         let drawable = view.currentDrawable!
-        command_buffer.present(drawable, afterMinimumDuration: 1.0/5.0)
+        command_buffer.present(drawable, afterMinimumDuration: 1.0/60.0)
         
         if (update_mode != UpdateMode.none) {
             if (update_mode == UpdateMode.step) {
                 update_mode = UpdateMode.none
             }
             
-            let compute_command_encoder = command_buffer.makeComputeCommandEncoder()!
-            compute_command_encoder.setComputePipelineState(compute_pipeline_state!)
-            compute_command_encoder.setBuffer(uniforms_buffer, offset: 0, index: SmoothLifeUpdateBufferIndex.uniforms.rawValue)
-            compute_command_encoder.setBuffer(buffer_a, offset: 0, index: self.use_buffer_a ? SmoothLifeUpdateBufferIndex.dataOut.rawValue : SmoothLifeUpdateBufferIndex.dataIn.rawValue)
-            compute_command_encoder.setBuffer(buffer_b, offset: 0, index: self.use_buffer_a ? SmoothLifeUpdateBufferIndex.dataIn.rawValue : SmoothLifeUpdateBufferIndex.dataOut.rawValue)
-            compute_command_encoder.setBuffer(radius_index_buffer, offset: 0, index: SmoothLifeUpdateBufferIndex.radiusIndex.rawValue)
-            let cell_count = Int(uniforms.board_cell_count_1d * uniforms.board_cell_count_1d)
-            let grid_size = MTLSizeMake(cell_count, 1, 1)
-            var thread_group_size_x = compute_pipeline_state!.maxTotalThreadsPerThreadgroup
-            if (thread_group_size_x > cell_count) {
-                thread_group_size_x = cell_count
+            if (update_on_gpu) {
+                let compute_command_encoder = command_buffer.makeComputeCommandEncoder()!
+                compute_command_encoder.setComputePipelineState(compute_pipeline_state!)
+                compute_command_encoder.setBuffer(uniforms_buffer, offset: 0, index: SmoothLifeUpdateBufferIndex.uniforms.rawValue)
+                compute_command_encoder.setBuffer(data_buffer[data_buffer_output_index], offset: 0, index: SmoothLifeUpdateBufferIndex.dataOut.rawValue)
+                compute_command_encoder.setBuffer(data_buffer[1 - data_buffer_output_index], offset: 0, index: SmoothLifeUpdateBufferIndex.dataIn.rawValue)
+                compute_command_encoder.setBuffer(radius_index_buffer, offset: 0, index: SmoothLifeUpdateBufferIndex.radiusIndex.rawValue)
+                let cell_count = Int(uniforms.board_cell_count_1d * uniforms.board_cell_count_1d)
+                let grid_size = MTLSizeMake(cell_count, 1, 1)
+                var thread_group_size_x = compute_pipeline_state!.maxTotalThreadsPerThreadgroup
+                if (thread_group_size_x > cell_count) {
+                    thread_group_size_x = cell_count
+                }
+                let thread_group_size = MTLSizeMake(thread_group_size_x, 1, 1)
+                compute_command_encoder.dispatchThreads(grid_size, threadsPerThreadgroup: thread_group_size)
+                compute_command_encoder.endEncoding()
+            } else {
+                let data_buffer_input_index = 1 - data_buffer_output_index
+                
+                let index_buffer_ptr: UnsafeMutablePointer<UInt32> = radius_index_buffer.contents().bindMemory(to: UInt32.self, capacity: Int(uniforms.inner_radius_cell_count + uniforms.outer_radius_cell_count))
+                var data_out_ptr: UnsafeMutablePointer<SmoothLifeData> = data_buffer[data_buffer_output_index].contents().bindMemory(to: SmoothLifeData.self, capacity: Int(uniforms.board_cell_count_1d * uniforms.board_cell_count_1d))
+                let data_in_ptr: UnsafeMutablePointer<SmoothLifeData> = data_buffer[data_buffer_input_index].contents().bindMemory(to: SmoothLifeData.self, capacity: Int(uniforms.board_cell_count_1d * uniforms.board_cell_count_1d))
+                for i in 0..<UInt32(uniforms.board_cell_count_1d * uniforms.board_cell_count_1d) {
+                    smooth_life_cell(i, data_in_ptr, data_out_ptr, index_buffer_ptr, uniforms.board_cell_count_1d, uniforms.inner_radius_cell_count, uniforms.outer_radius_cell_count)
+                }
             }
-            let thread_group_size = MTLSizeMake(thread_group_size_x, 1, 1)
-            compute_command_encoder.dispatchThreads(grid_size, threadsPerThreadgroup: thread_group_size)
-            compute_command_encoder.endEncoding()
             
-            self.use_buffer_a = !self.use_buffer_a
+            self.data_buffer_output_index = 1 - self.data_buffer_output_index
         }
         
         command_buffer.commit()

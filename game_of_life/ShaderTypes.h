@@ -12,16 +12,27 @@
 
 #ifdef __METAL_VERSION__
 
+#include <metal_stdlib>
 //using namespace metal;
 #define NS_ENUM(_type, _name) enum _name : _type _name; enum _name : _type
 typedef metal::int32_t EnumBackingType;
 #define METAL_ATTRIBUTE(attribute) [[attribute]]
+#define exp_function metal::exp
+#define ASSERT(x)
+#define METAL_DEVICE_ADDRESS_SPACE device
+#define METAL_CONSTANT_ADDRESS_SPACE constant
 
 #else
 
 #import <Foundation/Foundation.h>
+#import <math.h>
+#import <assert.h>
 typedef NSInteger EnumBackingType;
 #define METAL_ATTRIBUTE(attribute)
+#define exp_function expf
+#define ASSERT(x) assert(x)
+#define METAL_DEVICE_ADDRESS_SPACE
+#define METAL_CONSTANT_ADDRESS_SPACE
 
 #endif
 
@@ -126,5 +137,60 @@ typedef NS_ENUM(EnumBackingType, SmoothLifeUpdateBufferIndex)
    SmoothLifeUpdateBufferIndex_DataOut = 2,
     SmoothLifeUpdateBufferIndex_RadiusIndex = 3
 };
+
+float sigma_1(float x, float a, float alpha){
+	return 1.0f / (1.0f + exp_function(-(x - a) * 4 / alpha));
+}
+
+float sigma_2(float x, float a, float b, float alpha){
+	return sigma_1(x, a, alpha)*(1 - sigma_1(x, b, alpha));
+}
+
+float sigma_inner(float x, float y, float inner, float alpha){
+	const float sigma_1_o = sigma_1(inner, 0.5f, alpha);
+	return x * (1 - sigma_1_o) + y * sigma_1_o;
+}
+
+float s(float inner, float outer){
+    const float b_1 = 0.278;
+    const float b_2 = 0.365;
+    const float d_1 = 0.267;
+    const float d_2 = 0.445;
+    const float alpha_outer = 0.028;
+    const float alpha_inner = 0.147;
+
+	const float sigma_inner_o1 = sigma_inner(b_1, d_1, inner, alpha_inner);
+	const float sigma_inner_o2 = sigma_inner(b_2, d_2, inner, alpha_inner);
+	const float result = sigma_2(outer, sigma_inner_o1, sigma_inner_o2, alpha_outer);
+    ASSERT(result >= 0.0 && result <= 1.0);
+    return result;
+}
+
+void smooth_life_cell(uint32_t index, METAL_CONSTANT_ADDRESS_SPACE const SmoothLifeData* in, METAL_DEVICE_ADDRESS_SPACE SmoothLifeData* out, METAL_CONSTANT_ADDRESS_SPACE uint32_t* radius_index, uint32_t board_cell_count_1d, uint32_t inner_radius_cell_count, uint32_t outer_radius_cell_count) {
+    const uint32_t r = index / board_cell_count_1d;
+    const uint32_t c = index % board_cell_count_1d;
+    const uint32_t data_index = r * board_cell_count_1d + c;
+
+    float inner_count = 0.0;
+    for (uint32_t i = 0; i < inner_radius_cell_count; ++i) {
+        const uint32_t neighbor_r = (r + radius_index[i * 2 + 1]) % board_cell_count_1d;
+        const uint32_t neighbor_c = (c + radius_index[i * 2]) % board_cell_count_1d;
+        const uint32_t neighbor_index = neighbor_r * board_cell_count_1d + neighbor_c;
+        inner_count += in[neighbor_index];
+    }
+    inner_count /= (float)(inner_radius_cell_count);
+    
+    float outer_count = 0.0;
+    for (uint32_t i = inner_radius_cell_count; i < inner_radius_cell_count + outer_radius_cell_count; ++i) {
+        const uint32_t neighbor_r = (r + radius_index[i * 2 + 1]) % board_cell_count_1d;
+        const uint32_t neighbor_c = (c + radius_index[i * 2]) % board_cell_count_1d;
+        const uint32_t neighbor_index = neighbor_r * board_cell_count_1d + neighbor_c;
+        outer_count += in[neighbor_index];
+    }
+    outer_count /= (float)(outer_radius_cell_count);
+    
+    out[data_index] = s(inner_count, outer_count);
+}
+
 
 #endif /* ShaderTypes_h */
