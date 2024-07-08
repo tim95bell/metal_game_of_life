@@ -105,9 +105,9 @@ class SmoothLifeRenderer: NSObject, MTKViewDelegate {
         self.update_mode = UpdateMode.none
         self.update_on_gpu = true
         
-        let board_cell_count_1d: UInt32 = 1000
-        let inner_radius: UInt8 = 2
-        let outer_radius: UInt8 = 6
+        let board_cell_count_1d: UInt32 = 700
+        let inner_radius: UInt32 = 2
+        let outer_radius: UInt32 = 6
         self.far_plane = ((Float(board_cell_count_1d) / 2.0) / tan(fov / 2.0)) * 2.0;
         self.near_plane = (1.0 / 2.0) / tan(fov / 2.0);
         

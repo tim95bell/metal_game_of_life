@@ -13,7 +13,6 @@
 #ifdef __METAL_VERSION__
 
 #include <metal_stdlib>
-//using namespace metal;
 #define NS_ENUM(_type, _name) enum _name : _type _name; enum _name : _type
 typedef metal::int32_t EnumBackingType;
 #define METAL_ATTRIBUTE(attribute) [[attribute]]
@@ -114,8 +113,8 @@ typedef struct {
     uint32_t board_cell_count_1d;
     uint32_t inner_radius_cell_count;
     uint32_t outer_radius_cell_count;
-    uint8_t inner_radius;
-    uint8_t outer_radius;
+    uint32_t inner_radius;
+    uint32_t outer_radius;
 } SmoothLifeUniforms;
 
 typedef struct {
@@ -152,12 +151,12 @@ float sigma_inner(float x, float y, float inner, float alpha){
 }
 
 float s(float inner, float outer){
-    const float b_1 = 0.278;
-    const float b_2 = 0.365;
-    const float d_1 = 0.267;
-    const float d_2 = 0.445;
-    const float alpha_outer = 0.028;
-    const float alpha_inner = 0.147;
+   const float b_1 = 0.278;
+   const float b_2 = 0.365;
+   const float d_1 = 0.267;
+   const float d_2 = 0.445;
+   const float alpha_outer = 0.028;
+   const float alpha_inner = 0.147;
 
 	const float sigma_inner_o1 = sigma_inner(b_1, d_1, inner, alpha_inner);
 	const float sigma_inner_o2 = sigma_inner(b_2, d_2, inner, alpha_inner);
@@ -188,7 +187,7 @@ void smooth_life_cell(uint32_t index, METAL_CONSTANT_ADDRESS_SPACE const SmoothL
         outer_count += in[neighbor_index];
     }
     outer_count /= (float)(outer_radius_cell_count);
-    
+
     out[data_index] = s(inner_count, outer_count);
 }
 
